@@ -1,0 +1,94 @@
+CREATE TABLE "person"(
+  "person_id" VARCHAR(9) PRIMARY KEY,
+  "full_name" TEXT,
+  "address" TEXT,
+  "building_number" TEXT,
+  "phone_number" TEXT
+);
+CREATE TABLE "teacher"(
+  "person_id" VARCHAR(9) PRIMARY KEY,
+  "class_code" TEXT  
+);
+CREATE TABLE student(
+ person_id VARCHAR(9) PRIMARY KEY,
+"grade_code" TEXT
+);
+
+CREATE TABLE score1(
+person_id varchar(10) primary key,
+score int  
+);
+CREATE TABLE score2(
+person_id varchar(10) primary key,
+score int  
+);
+CREATE TABLE score3(
+person_id varchar(10) primary key,
+score int  
+);
+CREATE TABLE score(
+person_id varchar(10),
+score int  
+);
+
+.mode csv
+.import --skip 1 person.csv person 
+.import --skip 1 teacher.csv teacher
+.mode column
+INSERT INTO student(person_id)
+select person_id from person where person_id not in (select person_id from teacher);
+
+/*select * from student ORDER BY person_id limit 5*/
+
+.mode csv
+.import --skip 1 score1.csv score1
+.import --skip 1 score2.csv score2
+.import --skip 1 score3.csv score3  
+
+.mode column
+Insert into score 
+select person_id, score from score1 
+union all
+select person_id, score from score2
+union all
+select person_id, score from score3;
+DROP TABLE score1;
+drop table score2;
+drop table score3;
+
+/*select * from score order by person_id limit 5;
+
+select person_id, count(score) from score group by person_id*/
+
+Update student
+set grade_code = 'GD-10'
+where person_id IN (select person_id from (select person_id, count(score) over(partition by person_id) as 'count'
+        from score) where count = 1);
+
+UPDATE student
+set  grade_code = 'GD-11'
+where person_id IN (select person_id from (select person_id, count(score) over(partition by person_id) as 'count'
+        from score) where count = 2);
+update student
+ set   grade_code = 'GD-12'
+where person_id IN (select person_id from (select person_id, count(score) over(partition by person_id) as 'count'
+        from score) where count = 3);
+update student
+set grade_code = 'GD-09'
+where grade_code is null;
+
+--select * from student order by person_id limit 5
+--select * from student;
+
+select person_id, round(avg(score), 2) as avg_score 
+from score 
+where score.person_id in (select person_id from student where grade_code = 'GD-12')  
+GROUP BY person_id 
+order by avg_score desc
+
+
+
+
+
+
+
